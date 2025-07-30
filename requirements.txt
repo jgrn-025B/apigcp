@@ -5,5 +5,3 @@ requests==2.32.4
 structlog==25.1.0
 
 google-auth==2.3.2
-
-python-chess==1.11.2
