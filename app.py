@@ -13,7 +13,7 @@ app = Flask(__name__)
 @app.route("/<gameId>")  # Update the route to accept a gameId as a URL parameter
 def fetch_game_data(gameId: str) -> Response:
     """Fetch game data from Lichess in PGN format, convert to JSON, and return it."""
-    url = f"https://lichess.org/api/study/KZ4GGtvY/BUMkRuMO.pgn"  # Construct the URL with the gameId
+    url = f"https://fantasy.premierleague.com/api/bootstrap-static/"  # Construct the URL with the gameId
     try:
         response = requests.get(url)  # Make a GET request to the URL
         response.raise_for_status()  # Raise an error for bad responses (4xx or 5xx)
