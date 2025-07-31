@@ -37,7 +37,7 @@ def fetch_and_store():
         cleaned_data = remove_empty_structs(data)
 
         client = storage.Client()
-        bucket = client.bucket("fpl-data-bucket-anjali")
+        bucket = client.bucket("my_bucket_jgrn")
         blob = bucket.blob("fpl_data.json")
         blob.upload_from_string(data=json.dumps(cleaned_data), content_type="application/json")
 
