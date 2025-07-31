@@ -1,39 +1,54 @@
 import signal
 import sys
 from types import FrameType
-import requests  # Import the requests library
-
-from flask import Flask, jsonify  # Import jsonify for returning JSON responses
+import requests
+from flask import Flask, jsonify
 from utils.logging import logger
+from google.cloud import storage
 
 app = Flask(__name__)
 
-@app.route("/<gameId>")  # Update the route to accept a gameId as a URL parameter
-def fetch_game_data(gameId: str) -> str:
-    """Fetch game data from the FPL API and return it as JSON."""
-    url = f"https://fantasy.premierleague.com/api/bootstrap-static/"  # FPL API URL
-    try:
-        response = requests.get(url)  # Make a GET request to the URL
-        response.raise_for_status()  # Raise an error for bad responses (4xx or 5xx)
+@app.route("/")
+def fetch_data() -> str:
+    # Use basic logging with custom fields
+    logger.info(logField="custom-entry", arbitraryField="custom-entry")
 
+    # Fetch data from the URL
+    url = "https://fantasy.premierleague.com/api/bootstrap-static/"
+    response = requests.get(url)
+
+    if response.status_code == 200:
         # Log the successful fetch
-        logger.info(f"Successfully fetched data for gameId: {gameId}")
+        logger.info("Data fetched successfully from the URL.")
+        
+        # Optionally, you can upload the data to Google Cloud Storage
+        upload_to_gcs(response.json())
 
-        # Return the JSON response
-        return jsonify(response.json()), 200  # Return the JSON data with a 200 status code
+        return jsonify(response.json())
+    else:
+        logger.error(f"Failed to fetch data: {response.status_code}")
+        return jsonify({"error": "Failed to fetch data"}), response.status_code
 
-    except requests.exceptions.RequestException as e:
-        logger.error(f"Error fetching data for gameId {gameId}: {str(e)}")
-        return jsonify({"error": str(e)}), 500  # Return an error message with a 500 status code
+def upload_to_gcs(data):
+    # Initialize a Cloud Storage client
+    client = storage.Client()
+    bucket = client.bucket("my_bucket_jgrn")
+    blob = bucket.blob("data.json")
+
+    # Upload the JSON data to the bucket
+    blob.upload_from_string(data=json.dumps(data), content_type='application/json')
+    logger.info("Data uploaded to Google Cloud Storage.")
 
 def shutdown_handler(signal_int: int, frame: FrameType) -> None:
     logger.info(f"Caught Signal {signal.strsignal(signal_int)}")
     from utils.logging import flush
     flush()
+    # Safely exit program
     sys.exit(0)
 
 if __name__ == "__main__":
     # Running application locally, outside of a Google Cloud Environment
+    # handles Ctrl-C termination
     signal.signal(signal.SIGINT, shutdown_handler)
     app.run(host="localhost", port=8080, debug=True)
 else:
