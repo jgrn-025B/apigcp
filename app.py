@@ -28,25 +28,38 @@ def fetch_and_store():
     logger.info("Child logger with trace Id.")
 
     try:
-        url = "https://fantasy.premierleague.com/api/bootstrap-static/"
+        game_id = request.args.get("gameId")
+        if not game_id:
+            return "Missing gameId query parameter", 400
+
+        url = f"https://lichess.org/game/export/{game_id}"
         response = requests.get(url)
         response.raise_for_status()
-        data = response.json()
+        pgn_text = response.text
 
-        # Clean the data to remove empty structs
-        cleaned_data = remove_empty_structs(data)
+        # Save PGN to a temporary file
+        temp_pgn_path = f"/tmp/{game_id}.pgn"
+        with open(temp_pgn_path, "w", encoding="utf-8") as f:
+            f.write(pgn_text)
 
+        # Convert PGN to CSV using PGNData
+        from converter.pgn_data import PGNData
+        pgn_data = PGNData(temp_pgn_path)
+        csv_path = pgn_data.export()  # Assuming export() returns the CSV file path
+
+        # Upload CSV to Cloud Storage
         client = storage.Client()
         bucket = client.bucket("my_bucket_jgrn")
-        blob = bucket.blob("fpl_data.json")
-        blob.upload_from_string(data=json.dumps(cleaned_data), content_type="application/json")
+        blob = bucket.blob(f"{game_id}.csv")
+        with open(csv_path, "rb") as csv_file:
+            blob.upload_from_file(csv_file, content_type="text/csv")
 
-        return "Cleaned data uploaded to Cloud Storage", 200
+        return "CSV uploaded to Cloud Storage", 200
 
     except Exception as e:
         logger.error(f"Error during fetch and store: {str(e)}")
         return f"Error: {str(e)}", 500
-
+    
 def shutdown_handler(signal_int: int, frame: FrameType) -> None:
     logger.info(f"Caught Signal {signal.strsignal(signal_int)}")
     flush()
