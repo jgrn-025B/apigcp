@@ -6,4 +6,5 @@ structlog==25.1.0
 
 google-auth==2.3.2
 google-cloud-storage
-
+chess
+pandas
