@@ -43,9 +43,35 @@ def fetch_and_store():
             f.write(pgn_text)
 
         # Convert PGN to CSV using PGNData
-        from converter.pgn_data import PGNData
-        pgn_data = PGNData(temp_pgn_path)
-        csv_path = pgn_data.export()  # Assuming export() returns the CSV file path
+        # Implement a simple PGN to CSV conversion here as PGNData is not available
+        import csv
+
+        def pgn_to_csv(pgn_path, csv_path):
+            with open(pgn_path, "r", encoding="utf-8") as pgn_file, open(csv_path, "w", newline='', encoding="utf-8") as csv_file:
+                writer = csv.writer(csv_file)
+                writer.writerow(["Event", "Site", "Date", "Round", "White", "Black", "Result", "Moves"])
+                event, site, date, round_, white, black, result, moves = "", "", "", "", "", "", "", ""
+                for line in pgn_file:
+                    if line.startswith("[Event "):
+                        event = line.split('"')[1]
+                    elif line.startswith("[Site "):
+                        site = line.split('"')[1]
+                    elif line.startswith("[Date "):
+                        date = line.split('"')[1]
+                    elif line.startswith("[Round "):
+                        round_ = line.split('"')[1]
+                    elif line.startswith("[White "):
+                        white = line.split('"')[1]
+                    elif line.startswith("[Black "):
+                        black = line.split('"')[1]
+                    elif line.startswith("[Result "):
+                        result = line.split('"')[1]
+                    elif line.strip() and not line.startswith("["):
+                        moves = line.strip()
+                writer.writerow([event, site, date, round_, white, black, result, moves])
+
+        csv_path = f"/tmp/{game_id}.csv"
+        pgn_to_csv(temp_pgn_path, csv_path)
 
         # Upload CSV to Cloud Storage
         client = storage.Client()
